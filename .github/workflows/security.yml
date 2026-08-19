@@ -24,6 +24,7 @@ jobs:
   codeql:
     name: CodeQL (${{ matrix.language }})
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
       security-events: write
@@ -48,6 +49,7 @@ jobs:
     name: Dependency review
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
@@ -62,6 +64,7 @@ jobs:
   secrets:
     name: Secret leak check
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
       pull-requests: read
@@ -78,6 +81,7 @@ jobs:
   sbom-and-filesystem:
     name: SBOM and filesystem vulnerabilities
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
       security-events: write
@@ -119,6 +123,7 @@ jobs:
     name: Container image vulnerabilities
     if: github.event_name == 'workflow_dispatch' && inputs.image_ref != ''
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
       security-events: write
