@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 @runtime_checkable
 class ArtifactStore(Protocol):
-    async def upload(self, artifact: "EvidenceArtifact") -> str:
+    async def upload(self, artifact: EvidenceArtifact) -> str:
         """Upload artifact bytes. Returns the storage URI (e.g. s3://...)."""
         ...
 
@@ -18,7 +18,7 @@ class ArtifactStore(Protocol):
 class NullArtifactStore:
     """Returns the existing urn:sha256: URI unchanged. Used in tests and when S3 is unconfigured."""
 
-    async def upload(self, artifact: "EvidenceArtifact") -> str:
+    async def upload(self, artifact: EvidenceArtifact) -> str:
         return str(artifact.metadata.storage_uri)
 
 
@@ -64,7 +64,7 @@ class S3ArtifactStore:
             ContentType=content_type,
         )
 
-    async def upload(self, artifact: "EvidenceArtifact") -> str:
+    async def upload(self, artifact: EvidenceArtifact) -> str:
         run_id = artifact.metadata.run_id
         evidence_id = artifact.metadata.evidence_id
         key = f"evidence/{run_id}/{evidence_id}.json"
