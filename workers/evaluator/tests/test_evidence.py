@@ -62,8 +62,12 @@ def test_evidence_id_binds_to_run_id() -> None:
     evidence belonging to the wrong run even when the content hash matches."""
     payload = {"observation": "glucose", "value": 5.4}
 
-    artifact_a = build_evidence(run_id="run:tenant-a", rule_id="test.rule.swap", value=payload, created_at=NOW)
-    artifact_b = build_evidence(run_id="run:tenant-b", rule_id="test.rule.swap", value=payload, created_at=NOW)
+    artifact_a = build_evidence(
+        run_id="run:tenant-a", rule_id="test.rule.swap", value=payload, created_at=NOW
+    )
+    artifact_b = build_evidence(
+        run_id="run:tenant-b", rule_id="test.rule.swap", value=payload, created_at=NOW
+    )
 
     # Content-addressed IDs are identical — same data produces the same hash.
     assert artifact_a.metadata.evidence_id == artifact_b.metadata.evidence_id
@@ -108,7 +112,9 @@ def test_canonical_json_rejects_mutated_object() -> None:
     dict must produce the same SHA-256 (determinism + immutability)."""
     source: dict[str, object] = {"result": "stable", "count": 42}
 
-    original = build_evidence(run_id="run:mutation", rule_id="test.rule.canary", value=source, created_at=NOW)
+    original = build_evidence(
+        run_id="run:mutation", rule_id="test.rule.canary", value=source, created_at=NOW
+    )
     captured_content = original.content
     captured_sha256 = original.metadata.sha256
 
