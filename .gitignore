@@ -46,3 +46,10 @@ Thumbs.db
 test-results/
 playwright-report/
 
+
+# Compiled binaries
+*.exe
+*.dll
+*.so
+*.dylib
+/cmd/flightcheck/flightcheck
