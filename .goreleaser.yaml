@@ -1,0 +1,45 @@
+version: 2
+
+project_name: flightcheck
+
+before:
+  hooks:
+    - go -C services/control-plane mod verify
+    - go test ./services/control-plane/... ./cmd/flightcheck/...
+
+builds:
+  - id: flightcheck
+    dir: cmd/flightcheck
+    main: .
+    binary: flightcheck
+    env:
+      - CGO_ENABLED=0
+      - GOWORK=../../go.work
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags: ["-trimpath"]
+    ldflags:
+      - "-s -w"
+
+archives:
+  - ids: [flightcheck]
+    formats: ["tar.gz"]
+    format_overrides:
+      - goos: windows
+        formats: ["zip"]
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+sboms:
+  - artifacts: archive
+
+changelog:
+  use: github-native
+
+release:
+  prerelease: auto

@@ -1,0 +1,48 @@
+# Dependencies and generated caches
+node_modules/
+.pnpm-store/
+.next/
+dist/
+coverage/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.venv/
+bin/
+.tools/
+
+# Coverage reports
+.coverage
+*.coverage
+htmlcov/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# Runtime data
+.flightcheck/
+data/
+artifacts/
+reports/
+
+# IDE and operating system
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Local brainstorming artifacts
+.superpowers/
+
+# Playwright test output
+test-results/
+playwright-report/
+

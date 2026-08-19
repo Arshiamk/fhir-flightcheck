@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  contracts-and-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 11.22.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm audit --audit-level high
+      - run: pnpm check:authorship
+      - run: pnpm check:contracts
+      - run: pnpm generate:contracts
+      - name: Reject generated contract drift
+        run: git diff --exit-code -- packages/contracts/generated
+      - run: pnpm lint:web
+      - run: pnpm typecheck:web
+      - run: pnpm test:web
+      - run: pnpm build:web
+      - run: pnpm --filter web exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          enable-cache: true
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.14"
+      - run: uv sync --project workers/evaluator --locked --all-groups
+      - run: uv run --project workers/evaluator ruff check workers/evaluator
+      - run: uv run --project workers/evaluator ruff format --check workers/evaluator
+      - run: uv run --project workers/evaluator mypy workers/evaluator/src
+      - run: uv run --project workers/evaluator pytest workers/evaluator/tests --cov=flightcheck_evaluator --cov-fail-under=90
+      - run: uv export --project workers/evaluator --locked --no-dev --no-emit-project --output-file /tmp/evaluator-requirements.txt
+      - run: uvx --from pip-audit==2.10.1 pip-audit -r /tmp/evaluator-requirements.txt
+
+  go:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: "1.26.6"
+          cache-dependency-path: |
+            cmd/flightcheck/go.sum
+            services/control-plane/go.sum
+      - run: gofmt -w cmd services packages/contracts/generated/go
+      - name: Reject formatting drift
+        run: git diff --exit-code
+      - run: go vet ./cmd/flightcheck/... ./services/control-plane/...
+      - run: go test -race ./cmd/flightcheck/... ./services/control-plane/...
+      - run: go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
+        working-directory: services/control-plane
+      - run: go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
+        working-directory: cmd/flightcheck
+
+  postgres-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18.6-alpine
+        env:
+          POSTGRES_DB: flightcheck_test
+          POSTGRES_USER: flightcheck
+          POSTGRES_PASSWORD: integration-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U flightcheck -d flightcheck_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: "1.26.6"
+          cache-dependency-path: services/control-plane/go.sum
+      - name: Verify PostgreSQL persistence and RLS migration
+        env:
+          FLIGHTCHECK_TEST_DATABASE_URL: postgres://flightcheck:integration-only-password@127.0.0.1:5432/flightcheck_test?sslmode=disable
+        run: go test -count=1 -run TestPostgresRepositoryIdempotencyAndTenantIsolation ./...
+        working-directory: services/control-plane

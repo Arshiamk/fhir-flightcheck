@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability privately
+    url: https://github.com/Arshiamk/fhir-flightcheck/security/advisories/new
+    about: Do not open a public issue or include PHI, credentials, tokens, or target data.
+  - name: Security policy
+    url: https://github.com/Arshiamk/fhir-flightcheck/security/policy
+    about: Read the reporting and product-boundary guidance before submitting.

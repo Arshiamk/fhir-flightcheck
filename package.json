@@ -1,0 +1,28 @@
+{
+  "name": "fhir-flightcheck",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Evidence-backed production readiness checks for FHIR integrations",
+  "packageManager": "pnpm@11.22.0+sha512.1ff870c4c6133dfd88fb2afc46dd13d47f09c9794b438c6fdb47ca98caf3bc16381ee0be93a091b8e3824cf01f889f46d7d9e20910fb0be1ab0fb5baa80dd621",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev:web": "pnpm --filter web dev",
+    "build:web": "pnpm --filter web build",
+    "lint:web": "pnpm --filter web lint",
+    "typecheck:web": "pnpm --filter web typecheck",
+    "test:web": "pnpm --filter web test",
+    "test:e2e": "pnpm --filter web test:e2e",
+    "check:contracts": "node packages/contracts/scripts/validate.mjs",
+    "generate:contracts": "node packages/contracts/scripts/generate.mjs",
+    "check:authorship": "node scripts/verify-authorship.mjs",
+    "check": "pnpm check:authorship && pnpm check:contracts && pnpm lint:web && pnpm typecheck:web && pnpm test:web"
+  },
+  "devDependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "json-schema-to-typescript": "^15.0.4",
+    "quicktype": "^26.0.0"
+  }
+}

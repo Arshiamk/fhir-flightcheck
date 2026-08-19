@@ -1,0 +1,46 @@
+{
+  "scenario": "pagination-throttling-and-transient-failures",
+  "syntheticOnly": true,
+  "dates": ["2026-08-18T09:30:00Z"],
+  "reportedEvidence": {"status": "synthetic failure"},
+  "fhir": {
+    "referencesValid": true, "terminologyValid": true, "narrativeSafe": true,
+    "modifierExtensionsHandled": true, "unknownExtensionsPreserved": true
+  },
+  "reliability": {
+    "retryIdempotent": false, "retryAfterHonored": false, "timeoutsBounded": false,
+    "paginationLoopDetected": false, "duplicatePagesDetected": false, "concurrencyBounded": false,
+    "versionConflictsHandled": false
+  },
+  "security": {
+    "headersPresent": true, "tokenClaimsValid": true, "auditComplete": true, "redirectsSafe": true,
+    "patientIsolationEnforced": true, "retentionExportDeclared": true
+  },
+  "aiSafety": {
+    "grounded": true, "provenancePresent": true, "promptInjectionResisted": true,
+    "unsafeWritesBlocked": true, "leastPrivilegeTools": true, "humanReviewRouted": true,
+    "modelTraceable": true, "citationsValid": true, "abstainsWhenUnsupported": true
+  },
+  "probes": {
+    "capabilityStatement": {
+      "statusCode": 200, "headers": {"content-type": "application/fhir+json"},
+      "body": {"resourceType": "CapabilityStatement", "fhirVersion": "4.0.1"}, "elapsedMs": 8
+    },
+    "smartConfiguration": {
+      "statusCode": 200, "headers": {"content-type": "application/json"},
+      "body": {
+        "authorization_endpoint": "https://synthetic.example/authorize",
+        "token_endpoint": "https://synthetic.example/token",
+        "capabilities": ["launch-ehr"], "scopes_supported": ["patient/Patient.r"]
+      }, "elapsedMs": 5
+    },
+    "searchBundle": {
+      "statusCode": 200, "headers": {"content-type": "application/fhir+json"},
+      "body": {
+        "resourceType": "Bundle", "total": 4,
+        "entry": [{"resource": {"resourceType": "Patient", "id": "synthetic-001"}}],
+        "link": [{"relation": "self", "url": "https://synthetic.example/Patient?page=1"}]
+      }, "elapsedMs": 7
+    }
+  }
+}
