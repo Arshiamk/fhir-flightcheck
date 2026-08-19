@@ -42,7 +42,7 @@ class S3ArtifactStore:
 
     def _put_object(self, key: str, body: bytes, content_type: str) -> None:
         try:
-            import boto3  # type: ignore[import-untyped]
+            import boto3
         except ImportError as exc:
             raise RuntimeError(
                 "boto3 is required for S3 uploads; install it with: pip install boto3"

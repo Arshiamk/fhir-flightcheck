@@ -57,3 +57,10 @@ select = ["E", "F", "I", "B", "UP", "ASYNC", "S"]
 python_version = "3.12"
 strict = true
 warn_unreachable = true
+
+[[tool.mypy.overrides]]
+# boto3 is an optional extra (the "s3" extra) and ships no type stubs, so it is
+# absent from the default CI environment. The import is guarded by try/except
+# ImportError at runtime in storage.py.
+module = ["boto3", "boto3.*"]
+ignore_missing_imports = true
