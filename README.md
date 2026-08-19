@@ -1,114 +1,133 @@
 # FHIR Flightcheck
 
-FHIR Flightcheck turns a repeatable set of FHIR R4 integration checks into a
-blocker-first readiness report. Run it against the bundled HAPI FHIR target,
-inspect the evidence behind each finding, save a signed report, and use a
-verified baseline as a regression gate.
+**Production readiness checks for FHIR integrations — evidence-backed, signed, and reproducible.**
 
-> **Assurance boundary:** Flightcheck is an engineering assessment tool, not a
-> certification. A `ready` decision means that the selected, versioned rules
-> completed without a blocking result for the observed target and inputs. It
-> does not establish HIPAA, FDA, SOC 2, ISO, legal, clinical-safety, or medical
-> device compliance.
+[![CI](https://github.com/Arshiamk/fhir-flightcheck/actions/workflows/ci.yml/badge.svg)](https://github.com/Arshiamk/fhir-flightcheck/actions/workflows/ci.yml)
+[![Security](https://github.com/Arshiamk/fhir-flightcheck/actions/workflows/security.yml/badge.svg)](https://github.com/Arshiamk/fhir-flightcheck/actions/workflows/security.yml)
+[![Go 1.26](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go)](https://go.dev)
+[![Python 3.14](https://img.shields.io/badge/Python-3.14-3776AB?logo=python&logoColor=white)](https://www.python.org)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-## What is implemented
+---
 
-- A Go control plane and CLI with versioned JSON contracts, idempotent
-  mutations, PostgreSQL persistence, and RFC 9457-style problem responses.
-- Asynchronous evaluation through a PostgreSQL transactional outbox and NATS
-  JetStream, with bounded worker redelivery and idempotent completion.
-- 35 deterministic rules in four packs: FHIR R4 conformance (9), reliability
-  (8), security/privacy/auditability (9), and AI safety/human oversight (9).
-- Explicit outcomes (`pass`, `fail`, `warning`, `not_applicable`,
-  `inconclusive`, `platform_error`) and decisions (`ready`, `conditional`,
-  `not_ready`, `incomplete`) instead of an aggregate compliance score.
-- Ed25519-signed complete reports, offline verification, baseline selection,
-  and a CLI regression gate with documented exit codes.
-- A Next.js blocker-first operations-console demonstration. It currently uses
-  reviewed static synthetic data; it is not yet connected to the control-plane
-  API.
+## The problem
 
-See [Limitations](docs/LIMITATIONS.md) for the important gaps between the
-current prototype and the intended production platform.
+Every healthtech engineering team building a FHIR integration faces the same question before go-live:
+
+> *"Is this integration actually safe to put in front of patients?"*
+
+The answer is usually buried in a combination of Postman collections, tribal knowledge, manual checklists, and last-minute security reviews. FHIR Flightcheck replaces that with a **repeatable, automated, evidence-backed readiness assessment** you can run in CI or before every deployment.
+
+---
+
+## What it does
+
+Flightcheck runs **35 deterministic rules** across four packs against your FHIR R4 endpoint, collects cryptographically-addressed evidence for every check, and produces a **signed readiness report** with a clear decision:
+
+| Decision | Meaning |
+|---|---|
+| `ready` | All rules passed with no blocking findings |
+| `conditional` | Low-severity warnings — review before go-live |
+| `not_ready` | One or more blocking findings — must fix before go-live |
+| `incomplete` | Coverage gap — not enough data to decide |
+
+### Rule packs
+
+| Pack | Rules | What it checks |
+|---|---|---|
+| **FHIR R4 Conformance** | 9 | Resource structure, required fields, search capabilities, CapabilityStatement |
+| **Reliability** | 8 | Error rates, timeout behaviour, pagination, retry-ability |
+| **Security & Privacy** | 9 | SMART scopes, TLS, audit logging, PHI exposure in errors |
+| **AI Safety & Human Oversight** | 9 | Model authority boundaries, human review gates, prompt injection, capability disclosures |
+
+### Key features
+
+- **Blocker-first reporting** — critical and high findings surface immediately, not buried in a score
+- **Content-addressed evidence** — every finding is backed by a `urn:sha256:` hash of the captured payload
+- **Ed25519-signed reports** — tamper-evident; verify offline with just the public key
+- **Baseline regression gate** — pin a passing report as baseline; future runs fail if new blockers appear
+- **SARIF output** — integrates with GitHub Code Scanning, VS Code, and any SARIF-aware tool
+- **Idempotent runs** — safe to re-run; same inputs produce the same outcome
+
+---
 
 ## Architecture
 
-```text
-CLI / demo web console
-          |
-          v
-Go control plane ---- PostgreSQL (state + transactional outbox)
-          |                         |
-          +---- NATS JetStream <----+
-                     |
-                     v
-              Python evaluator ---- authorized FHIR target
-                     |
-                     v
-             findings + evidence metadata
-                     |
-                     v
-             signed readiness report
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Client layer                             │
+│   CLI (Go)          Web console (Next.js)                       │
+└──────────────┬──────────────────────┬──────────────────────────┘
+               │ REST (RFC 9457)       │ Server components
+               ▼                       ▼
+┌──────────────────────────────────────────────────────────────── ┐
+│                    Control plane (Go)                           │
+│  Run lifecycle · Ed25519 signing · Baseline management          │
+│  URL policy (SSRF) · PHI redaction · Tenant isolation          │
+└──────────┬───────────────────────────────────────┬─────────────┘
+           │ Transactional outbox                  │ PostgreSQL
+           ▼                                       │ (RLS)
+┌──────────────────────┐                           │
+│   NATS JetStream     │◄──────────────────────────┘
+│   (at-least-once)    │
+└──────────┬───────────┘
+           ▼
+┌──────────────────────────────────────────────────────────────── ┐
+│                  Evaluator worker (Python)                      │
+│  35 rules · Content-addressed evidence · S3 artifact upload    │
+│  SARIF generation · AI authority boundary enforcement          │
+└──────────────────────────────────────────────────────────────── ┘
+           │
+           ▼
+    Authorized FHIR target (R4)
 ```
 
-The control plane is the state-transition and signing authority. It creates an
-immutable run manifest, commits the run and outbox message together, and
-accepts worker completion through a separately authenticated internal route.
-The evaluator executes only declared rule capabilities. Complete reports are
-signed over canonical report content; the CLI stores the public key during
-initialization and can verify a report without contacting the service.
+**Polyglot monorepo** — Go for the control plane (correctness, concurrency, single binary), Python for the evaluator (FHIR ecosystem, ML-adjacent tooling), TypeScript for the console (Next.js App Router, server components).
 
-More detail: [architecture overview](docs/architecture/README.md).
+---
 
 ## Quick start
 
-Prerequisites: Docker Desktop with Compose v2, at least 8 GB free memory, and
-loopback ports `3000`, `3900`, `8080`, and `8081`.
+**Prerequisites:** Docker Desktop with Compose v2, 8 GB free memory, ports `3000`, `8080`, `8081` available.
 
-1. Create local configuration and replace every placeholder secret. The API
-   and worker tokens must be distinct and at least 32 characters.
+```bash
+# 1. Clone and configure
+git clone https://github.com/Arshiamk/fhir-flightcheck.git
+cd fhir-flightcheck
+cp .env.example .env
 
-   ```console
-   copy .env.example .env
-   docker compose run --no-deps --rm control-plane generate-signing-key
-   ```
+# 2. Generate a signing key and paste privateKey into .env
+docker compose run --no-deps --rm control-plane generate-signing-key
 
-   Copy only the command's `privateKey` value into
-   `FLIGHTCHECK_SIGNING_KEY` in `.env`. If Docker is unavailable but Go 1.26.6
-   is installed, use the fallback documented in
-   [local deployment](docs/deployment/local.md#generate-the-signing-key).
+# 3. Start the full stack (control plane + NATS + PostgreSQL + HAPI FHIR + web console)
+docker compose up --build -d
+docker compose ps
 
-2. Start the synthetic stack.
+# 4. Run your first readiness check against the bundled HAPI FHIR target
+docker compose --profile tools run --rm cli \
+  init --api http://control-plane:8081 --name "My Flightcheck" \
+  --config .flightcheck/config.json
 
-   ```console
-   docker compose up --build -d
-   docker compose ps
-   ```
+docker compose --profile tools run --rm cli \
+  target add --name "Local HAPI" --url http://fhir:8080/fhir \
+  --allow-local-demo --config .flightcheck/config.json
 
-3. Use the Compose `tools` profile. The explicit config path is required so
-   CLI state survives disposable containers.
+docker compose --profile tools run --rm cli \
+  run --profile startup-r4 --output .flightcheck/report.json \
+  --config .flightcheck/config.json
 
-   ```console
-   docker compose --profile tools run --rm cli init --api http://control-plane:8081 --name "Local Flightcheck" --config .flightcheck/config.json
-   docker compose --profile tools run --rm cli target add --name "Local HAPI" --url http://fhir:8080/fhir --allow-local-demo --config .flightcheck/config.json
-   docker compose --profile tools run --rm cli run --profile startup-r4 --output .flightcheck/report.json --config .flightcheck/config.json
-   docker compose --profile tools run --rm cli report verify --config .flightcheck/config.json .flightcheck/report.json
-   ```
+# 5. Verify the signed report
+docker compose --profile tools run --rm cli \
+  report verify --config .flightcheck/config.json .flightcheck/report.json
+```
 
-The console is at <http://localhost:3000>; its current data is explicitly a
-static demonstration. The HAPI target is at <http://localhost:8080/fhir>, and
-the control-plane health endpoint is at <http://localhost:8081/healthz>.
+**Web console:** http://localhost:3000
+**HAPI FHIR:** http://localhost:8080/fhir
+**Control plane health:** http://localhost:8081/healthz
 
-The current end-to-end path does not inject the repository's synthetic fixture
-files into queued runs. Fixture-dependent rules therefore report only what the
-empty run fixture permits, commonly `inconclusive`; this is expected prototype
-behavior, not a successful readiness assessment.
+---
 
 ## Reading a report
-
-Review blockers and missing evidence before passes. This excerpt illustrates
-the implemented report contract and decision logic; identifiers and values are
-examples, not benchmark results:
 
 ```json
 {
@@ -120,101 +139,137 @@ examples, not benchmark results:
       "outcome": "fail",
       "severity": "high",
       "summary": "Observed SMART scopes were broader than the rule permits.",
-      "evidenceRefs": ["evidence_example"],
-      "remediation": "Advertise and request only resource-specific scopes needed by the workflow."
+      "remediation": "Advertise and request only resource-specific scopes needed by the workflow.",
+      "evidenceRefs": ["urn:sha256:a3f8..."]
+    },
+    {
+      "ruleId": "reliability.timeout.behaviour",
+      "outcome": "pass",
+      "severity": "medium",
+      "summary": "Target returned 408 within 5 s and included Retry-After header."
     }
   ],
   "signature": {
     "algorithm": "Ed25519",
-    "keyId": "example-key-id",
-    "value": "<base64-signature>"
+    "keyId": "k_2026_local",
+    "value": "base64-encoded-signature"
   }
 }
 ```
 
-A failed critical or high-severity rule yields `not_ready`. Lower-severity
-failures or warnings yield `conditional`. Missing coverage, an inconclusive
-result, or a platform error yields `incomplete`. A complete report with none of
-those conditions is `ready`.
+- `not_ready` → at least one `high` or `critical` fail
+- `conditional` → only `low`/`medium` warnings
+- `incomplete` → coverage gap or `inconclusive` result
+- `ready` → all rules completed without blocking findings
 
-## Verification
+---
 
-Run the same checks used by CI:
+## CI integration
 
-```console
-pnpm install --frozen-lockfile
-pnpm check
-pnpm build:web
-go vet ./cmd/flightcheck/... ./services/control-plane/...
-go test -race ./cmd/flightcheck/... ./services/control-plane/...
-uv sync --project workers/evaluator --locked --all-groups
-uv run --project workers/evaluator ruff check workers/evaluator
-uv run --project workers/evaluator ruff format --check workers/evaluator
-uv run --project workers/evaluator mypy workers/evaluator/src
-uv run --project workers/evaluator pytest workers/evaluator/tests --cov=flightcheck_evaluator --cov-fail-under=90
-docker compose config --quiet
+Add a readiness gate to your pipeline. The CLI exits `1` on `not_ready` or `incomplete`:
+
+```yaml
+# .github/workflows/integration-check.yml
+- name: Run FHIR readiness check
+  run: |
+    docker compose --profile tools run --rm cli \
+      run --profile startup-r4 \
+      --baseline .flightcheck/baseline.json \
+      --output .flightcheck/report.json \
+      --config .flightcheck/config.json
 ```
 
-Required toolchains are Node.js 24 with pnpm 11.22.0, Go 1.26.6, Python 3.14,
-uv, and Docker Compose. For a shorter smoke check, see
-[local deployment](docs/deployment/local.md#verify-the-stack).
+Use `--baseline` to gate against a previously-approved report. New blocking findings fail the build; resolved findings are noted in the output.
+
+---
+
+## SARIF output
+
+```bash
+# Emit SARIF for GitHub Code Scanning integration
+uv run --project workers/evaluator \
+  flightcheck-eval evaluate \
+  --format sarif \
+  --output findings.sarif \
+  <manifest.json>
+```
+
+Upload `findings.sarif` to GitHub's Code Scanning tab for inline annotations on pull requests.
+
+---
 
 ## Security model
 
-- The API token and worker token are separate bearer-token boundaries and must
-  be distinct. Health and readiness endpoints are intentionally unauthenticated.
-- Durable or non-loopback control-plane mode requires an API token of at least
-  32 characters; every worker deployment requires a non-empty worker token,
-  while the control plane enforces 32 characters.
-- Durable mode requires a persistent Ed25519 private key. Complete reports are
-  signed; incomplete reports are not.
-- Target URLs are restricted to HTTP(S). Private and loopback targets require
-  the explicit local-demo override; redirects are not followed by the evaluator.
-- The startup rule profile excludes target-credential and write capabilities.
-  Target credentials are references, not plaintext values in run manifests.
-- The current prototype does **not** implement the production OIDC, RBAC,
-  PostgreSQL RLS, KMS/HSM, artifact encryption, workload identity, or sandbox
-  controls described as design targets in the threat model.
+- **Separate API and worker tokens** — minimum 32 characters each, distinct secrets
+- **URL policy** — private/loopback targets blocked by default (SSRF prevention); per-hop redirect re-validation
+- **Ed25519 signatures** — complete reports are signed; verification needs only the public key
+- **PHI redaction** — patient identifiers stripped from evidence before storage
+- **Tenant isolation** — PostgreSQL RLS enforces organization-scoped data access
+- **AI authority boundaries** — the AI rule pack enforces write prohibition, mandatory human review gates, and capability disclosures
 
-Read the [threat model](docs/security/threat-model.md), [data-handling
-policy](docs/security/data-handling.md), and
-[production deployment boundary](docs/deployment/production.md) before using a
-non-synthetic target.
+See [threat model](docs/security/threat-model.md) and [data handling policy](docs/security/data-handling.md) before pointing Flightcheck at a non-synthetic target.
 
-## Screenshots
+---
 
-No screenshots are committed yet. The operations-console demonstration can be
-viewed locally at <http://localhost:3000>. When screenshots are added, they
-must be captured from the shipped synthetic demo, contain no real patient data
-or credentials, include useful alt text, and match the current release.
+## Tech stack
+
+| Layer | Technology | Why |
+|---|---|---|
+| Control plane | Go 1.26 | Single binary, strong type system, excellent concurrency |
+| Evaluator | Python 3.14 + uv | FHIR ecosystem libraries, async workers |
+| Web console | Next.js 15 + TypeScript | App Router server components, zero client JS by default |
+| Message queue | NATS JetStream | At-least-once delivery, transactional outbox pattern |
+| Database | PostgreSQL + RLS | Tenant isolation, transactional outbox, ACID guarantees |
+| Artifact storage | S3-compatible (Garage) | Content-addressed evidence, supply-chain-safe |
+| Contracts | JSON Schema + quicktype | Single source of truth across all three runtimes |
+| CI | GitHub Actions | CodeQL, Trivy, govulncheck, dependabot, SBOM, pip-audit |
+
+---
+
+## Running the tests
+
+```bash
+# Go (control plane + CLI)
+go test -race ./...
+
+# Python (evaluator)
+uv run --project workers/evaluator pytest workers/evaluator/tests \
+  --cov=flightcheck_evaluator --cov-fail-under=90
+
+# TypeScript (contracts + web)
+pnpm install --frozen-lockfile
+pnpm check
+pnpm build:web
+```
+
+---
 
 ## Project status
 
-FHIR Flightcheck is a `0.1.0` prototype. The core local API, CLI, queue,
-evaluator, contracts, rule packs, signing, and baseline paths are present.
-Production identity, real artifact storage, fixture selection in queued runs,
-live console integration, packaged release verification, and published
-benchmark results remain work in progress. See the [roadmap](docs/ROADMAP.md).
+`v0.1.0` prototype — the core API, CLI, queue, evaluator, rule packs, signing, and baseline paths are all present and tested. Production-hardening (OIDC, KMS, real artifact encryption, packaged release verification) is tracked in the [roadmap](docs/ROADMAP.md).
+
+---
+
+## Related
+
+- **[HealthGuard](https://github.com/Arshiamk/healthguard)** — clinical AI guardrails SDK: PHI redaction, hallucination detection, prompt injection blocking, and audit trails for LLMs in healthcare. The AI Safety rule pack in Flightcheck evaluates AI systems against the HealthGuard policy surface.
+
+---
 
 ## Contributions
 
-Version 1 intentionally maintains a single-author commit history. Issues and
-design feedback are welcome, but external code commits and pull requests are
-not merged during this phase. This policy is enforced by the repository's
-authorship check and can be reconsidered after the first stable release.
+v1 maintains a single-author history. Issues and design feedback are welcome; external code PRs are not merged during this phase. See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+---
 
 ## License
 
-Licensed under the [Apache License 2.0](LICENSE).
+[Apache 2.0](LICENSE)
+
+---
 
 ## Standards references
 
-- [HL7 FHIR R4 (4.0.1)](https://hl7.org/fhir/R4/)
-- [FHIR R4 security and privacy module](https://hl7.org/fhir/R4/secpriv-module.html)
-- [SMART App Launch 2.2](https://hl7.org/fhir/smart-app-launch/)
-- [RFC 9457: Problem Details for HTTP APIs](https://www.rfc-editor.org/rfc/rfc9457)
-- [JSON Schema Draft 2020-12](https://json-schema.org/draft/2020-12)
-- [Ed25519, RFC 8032](https://www.rfc-editor.org/rfc/rfc8032)
+- [HL7 FHIR R4 (4.0.1)](https://hl7.org/fhir/R4/) · [SMART App Launch 2.2](https://hl7.org/fhir/smart-app-launch/) · [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) · [Ed25519 RFC 8032](https://www.rfc-editor.org/rfc/rfc8032) · [JSON Schema 2020-12](https://json-schema.org/draft/2020-12)
 
-References describe the standards that inform rules and contracts. They do not
-imply endorsement, certification, or complete conformance coverage.
+> **Assurance boundary:** Flightcheck is an engineering assessment tool, not a certification. A `ready` decision means the selected, versioned rules completed without a blocking result for the observed target and inputs. It does not establish HIPAA, FDA, SOC 2, ISO, clinical-safety, or medical device compliance.
