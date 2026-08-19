@@ -24,7 +24,7 @@ s3 = ["boto3>=1.35.0"]
 flightcheck-evaluator = "flightcheck_evaluator.cli:main"
 
 [build-system]
-requires = ["uv_build>=0.10.0,<0.11.0"]
+requires = ["uv_build>=0.10.0,<0.13.0"]
 build-backend = "uv_build"
 
 [dependency-groups]
