@@ -99,7 +99,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
       - name: Scan source and lockfiles
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
           scan-type: fs
           scan-ref: .
@@ -124,7 +124,7 @@ jobs:
       security-events: write
     steps:
       - name: Scan supplied image
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
           image-ref: ${{ inputs.image_ref }}
           format: sarif
