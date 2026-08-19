@@ -34,15 +34,15 @@ type ManifestTarget struct {
 }
 
 type RunManifest struct {
-	SchemaVersion   string            `json:"schemaVersion"`
-	RunID           string            `json:"runId"`
-	OrganizationID  string            `json:"organizationId"`
-	ProjectID       string            `json:"projectId"`
-	Target          ManifestTarget    `json:"target"`
-	Profile         string            `json:"profile"`
-	RuleVersions    map[string]string `json:"ruleVersions"`
-	FixtureVersion  string            `json:"fixtureVersion,omitempty"`
-	CreatedAt       time.Time         `json:"createdAt"`
+	SchemaVersion  string            `json:"schemaVersion"`
+	RunID          string            `json:"runId"`
+	OrganizationID string            `json:"organizationId"`
+	ProjectID      string            `json:"projectId"`
+	Target         ManifestTarget    `json:"target"`
+	Profile        string            `json:"profile"`
+	RuleVersions   map[string]string `json:"ruleVersions"`
+	FixtureVersion string            `json:"fixtureVersion,omitempty"`
+	CreatedAt      time.Time         `json:"createdAt"`
 }
 
 type Run struct {
