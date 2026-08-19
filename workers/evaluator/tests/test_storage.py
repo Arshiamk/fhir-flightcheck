@@ -1,14 +1,11 @@
 from __future__ import annotations
 
 import hashlib
-import json
 from datetime import UTC, datetime
 
 import pytest
-from pydantic import AnyUrl
 
 from flightcheck_evaluator.evidence import EvidenceArtifact, build_evidence
-from flightcheck_evaluator.models import Evidence
 from flightcheck_evaluator.storage import NullArtifactStore, make_artifact_store
 
 
