@@ -81,9 +81,7 @@ def test_ai_tool_model_allowlist_cannot_be_bypassed_with_empty_fixture() -> None
     """Absence of evidence must not be treated as approval.
     An empty ProbeSnapshot must yield INCONCLUSIVE, not PASS."""
     outcome = _evaluate_single("ai.write.prohibition", {})
-    assert outcome == Outcome.INCONCLUSIVE, (
-        f"Empty fixture must not produce PASS; got {outcome!r}"
-    )
+    assert outcome == Outcome.INCONCLUSIVE, f"Empty fixture must not produce PASS; got {outcome!r}"
 
 
 def test_ai_human_review_requirement_fails_on_direct_write() -> None:
