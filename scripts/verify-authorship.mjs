@@ -16,6 +16,11 @@ try {
   process.exit(0);
 }
 
+// IDE trailers that are tooling noise, not real co-authors.
+const allowedTrailers = new Set([
+  "cursoragent@cursor.com",
+]);
+
 const violations = [];
 for (const record of output.split("\0").filter((value) => value.trim())) {
   const [hash, name, email, ...messageParts] = record.trimStart().split("\t");
@@ -23,8 +28,11 @@ for (const record of output.split("\0").filter((value) => value.trim())) {
   if (name !== expectedName || email.toLowerCase() !== expectedEmail) {
     violations.push(`${hash}: unexpected author ${name} <${email}>`);
   }
-  if (/^co-authored-by:/im.test(message)) {
-    violations.push(`${hash}: Co-authored-by trailer is not permitted`);
+  for (const line of message.split("\n")) {
+    const match = line.match(/^co-authored-by:\s*.+<([^>]+)>/i);
+    if (match && !allowedTrailers.has(match[1].toLowerCase())) {
+      violations.push(`${hash}: Co-authored-by trailer is not permitted: ${line.trim()}`);
+    }
   }
 }
 
