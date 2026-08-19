@@ -1,0 +1,278 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://flightcheck.dev/schemas/v1/flightcheck.schema.json",
+  "title": "FlightcheckContract",
+  "oneOf": [
+    { "$ref": "#/$defs/Rule" },
+    { "$ref": "#/$defs/RunManifest" },
+    { "$ref": "#/$defs/Finding" },
+    { "$ref": "#/$defs/Evidence" },
+    { "$ref": "#/$defs/Report" },
+    { "$ref": "#/$defs/ApiProblem" }
+  ],
+  "$defs": {
+    "Rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "id",
+        "version",
+        "title",
+        "description",
+        "category",
+        "severity",
+        "behavior",
+        "deterministic",
+        "capabilities",
+        "timeoutSeconds",
+        "evaluator",
+        "remediation"
+      ],
+      "properties": {
+        "schemaVersion": { "const": "1.0.0" },
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:\\.[a-z0-9]+){2,}$" },
+        "version": { "$ref": "#/$defs/SemVer" },
+        "title": { "type": "string", "minLength": 4, "maxLength": 120 },
+        "description": { "type": "string", "minLength": 12, "maxLength": 1000 },
+        "category": {
+          "enum": ["fhir", "reliability", "security", "ai-safety"]
+        },
+        "severity": { "$ref": "#/$defs/Severity" },
+        "behavior": { "enum": ["passive", "active-read", "active-write"] },
+        "deterministic": { "type": "boolean" },
+        "supportedFhirVersions": {
+          "type": "array",
+          "items": { "enum": ["4.0.1"] },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "enum": ["network", "target-credentials", "fixtures", "model", "write"]
+          },
+          "uniqueItems": true
+        },
+        "timeoutSeconds": { "type": "integer", "minimum": 1, "maximum": 300 },
+        "evaluator": { "type": "string", "pattern": "^[a-z][a-z0-9_]{2,63}$" },
+        "standardReferences": {
+          "type": "array",
+          "items": { "type": "string", "format": "uri" },
+          "uniqueItems": true
+        },
+        "remediation": { "type": "string", "minLength": 12, "maxLength": 2000 },
+        "replacedBy": { "type": "string" }
+      }
+    },
+    "RunManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "runId",
+        "organizationId",
+        "projectId",
+        "target",
+        "profile",
+        "ruleVersions",
+        "createdAt"
+      ],
+      "properties": {
+        "schemaVersion": { "const": "1.0.0" },
+        "runId": { "$ref": "#/$defs/Identifier" },
+        "organizationId": { "$ref": "#/$defs/Identifier" },
+        "projectId": { "$ref": "#/$defs/Identifier" },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "baseUrl", "fhirVersion", "credentialRef"],
+          "properties": {
+            "id": { "$ref": "#/$defs/Identifier" },
+            "baseUrl": { "type": "string", "format": "uri" },
+            "fhirVersion": { "const": "4.0.1" },
+            "credentialRef": { "type": "string", "minLength": 1 },
+            "allowPrivateNetwork": { "type": "boolean", "default": false }
+          }
+        },
+        "profile": { "type": "string", "minLength": 1 },
+        "ruleVersions": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": { "$ref": "#/$defs/SemVer" }
+        },
+        "fixtureVersion": { "type": "string" },
+        "modelVersions": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "createdAt": { "$ref": "#/$defs/Timestamp" }
+      }
+    },
+    "Finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "findingId",
+        "runId",
+        "ruleId",
+        "ruleVersion",
+        "outcome",
+        "severity",
+        "title",
+        "summary",
+        "evidenceRefs",
+        "remediation",
+        "observedAt"
+      ],
+      "properties": {
+        "schemaVersion": { "const": "1.0.0" },
+        "findingId": { "$ref": "#/$defs/Identifier" },
+        "runId": { "$ref": "#/$defs/Identifier" },
+        "ruleId": { "type": "string" },
+        "ruleVersion": { "$ref": "#/$defs/SemVer" },
+        "outcome": {
+          "enum": ["pass", "fail", "warning", "not_applicable", "inconclusive", "platform_error"]
+        },
+        "severity": { "$ref": "#/$defs/Severity" },
+        "title": { "type": "string", "minLength": 1 },
+        "summary": { "type": "string", "minLength": 1 },
+        "evidenceRefs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Identifier" },
+          "uniqueItems": true
+        },
+        "remediation": { "type": "string", "minLength": 1 },
+        "observedAt": { "$ref": "#/$defs/Timestamp" }
+      }
+    },
+    "Evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "evidenceId",
+        "runId",
+        "mediaType",
+        "sha256",
+        "sizeBytes",
+        "storageUri",
+        "redactionStatus",
+        "createdAt"
+      ],
+      "properties": {
+        "schemaVersion": { "const": "1.0.0" },
+        "evidenceId": { "$ref": "#/$defs/Identifier" },
+        "runId": { "$ref": "#/$defs/Identifier" },
+        "mediaType": { "type": "string", "minLength": 1 },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "sizeBytes": { "type": "integer", "minimum": 0 },
+        "storageUri": { "type": "string", "format": "uri" },
+        "redactionStatus": { "enum": ["not-required", "redacted", "rejected"] },
+        "sourceRuleId": { "type": "string" },
+        "createdAt": { "$ref": "#/$defs/Timestamp" }
+      }
+    },
+    "Report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "reportId",
+        "runId",
+        "manifestSha256",
+        "decision",
+        "coverage",
+        "findings",
+        "createdAt"
+      ],
+      "properties": {
+        "schemaVersion": { "const": "1.0.0" },
+        "reportId": { "$ref": "#/$defs/Identifier" },
+        "runId": { "$ref": "#/$defs/Identifier" },
+        "manifestSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "decision": { "enum": ["ready", "conditional", "not_ready", "incomplete"] },
+        "coverage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["selected", "completed"],
+          "properties": {
+            "selected": { "type": "integer", "minimum": 0 },
+            "completed": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "findings": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Finding" }
+        },
+        "signature": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["algorithm", "keyId", "value"],
+          "properties": {
+            "algorithm": { "const": "Ed25519" },
+            "keyId": { "type": "string" },
+            "value": { "type": "string", "contentEncoding": "base64" }
+          }
+        },
+        "createdAt": { "$ref": "#/$defs/Timestamp" }
+      }
+    },
+    "ApiProblem": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "schemaVersion",
+        "type",
+        "title",
+        "status",
+        "detail",
+        "instance",
+        "category",
+        "code",
+        "traceId",
+        "retryable"
+      ],
+      "properties": {
+        "schemaVersion": { "const": "1.0.0" },
+        "type": { "type": "string", "format": "uri" },
+        "title": { "type": "string" },
+        "status": { "type": "integer", "minimum": 400, "maximum": 599 },
+        "detail": { "type": "string" },
+        "instance": { "type": "string" },
+        "category": {
+          "enum": [
+            "configuration",
+            "target",
+            "transient_target",
+            "permanent_target",
+            "rule_defect",
+            "platform",
+            "authorization"
+          ]
+        },
+        "code": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]+$" },
+        "traceId": { "type": "string" },
+        "retryable": { "type": "boolean" },
+        "retryAfterSeconds": { "type": "integer", "minimum": 0 },
+        "runId": { "$ref": "#/$defs/Identifier" }
+      }
+    },
+    "Identifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"
+    },
+    "SemVer": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+    },
+    "Severity": {
+      "enum": ["info", "low", "medium", "high", "critical"]
+    },
+    "Timestamp": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

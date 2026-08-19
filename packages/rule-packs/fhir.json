@@ -1,0 +1,69 @@
+{
+  "name": "FHIR R4 conformance and data quality",
+  "version": "1.0.0",
+  "rules": [
+    {
+      "schemaVersion": "1.0.0", "id": "fhir.discovery.capability", "version": "1.0.0",
+      "title": "FHIR R4 capability discovery", "description": "Verifies that metadata returns a successful FHIR R4 CapabilityStatement.",
+      "category": "fhir", "severity": "high", "behavior": "active-read", "deterministic": true,
+      "supportedFhirVersions": ["4.0.1"], "capabilities": ["network"], "timeoutSeconds": 10,
+      "remediation": "Expose a FHIR R4 CapabilityStatement from the metadata endpoint.", "evaluator": "capability_statement"
+    },
+    {
+      "schemaVersion": "1.0.0", "id": "fhir.http.contenttype", "version": "1.0.0",
+      "title": "FHIR JSON content type", "description": "Requires FHIR responses to advertise the application/fhir+json media type.",
+      "category": "fhir", "severity": "medium", "behavior": "active-read", "deterministic": true,
+      "supportedFhirVersions": ["4.0.1"], "capabilities": ["network"], "timeoutSeconds": 10,
+      "remediation": "Return application/fhir+json for JSON-encoded FHIR resources.", "evaluator": "content_type"
+    },
+    {
+      "schemaVersion": "1.0.0", "id": "fhir.search.pagination", "version": "1.0.0",
+      "title": "Search pagination links", "description": "Checks Bundle self and next links against the returned page and total.",
+      "category": "fhir", "severity": "high", "behavior": "active-read", "deterministic": true,
+      "supportedFhirVersions": ["4.0.1"], "capabilities": ["network"], "timeoutSeconds": 15,
+      "remediation": "Emit coherent absolute self and next links for paginated search Bundles.", "evaluator": "pagination_links"
+    },
+    {
+      "schemaVersion": "1.0.0", "id": "fhir.datetime.timezone", "version": "1.0.0",
+      "title": "Date and timezone precision", "description": "Checks representative FHIR dateTime values for explicit timezone offsets.",
+      "category": "fhir", "severity": "medium", "behavior": "passive", "deterministic": true,
+      "supportedFhirVersions": ["4.0.1"], "capabilities": ["fixtures"], "timeoutSeconds": 5,
+      "remediation": "Preserve an explicit UTC or numeric offset on every value containing a time.", "evaluator": "dates_timezones"
+    },
+    {
+      "schemaVersion": "1.0.0", "id": "fhir.reference.integrity", "version": "1.0.0",
+      "title": "Reference integrity", "description": "Verifies that representative synthetic resource references resolve.",
+      "category": "fhir", "severity": "high", "behavior": "passive", "deterministic": true,
+      "supportedFhirVersions": ["4.0.1"], "capabilities": ["fixtures"], "timeoutSeconds": 10,
+      "remediation": "Correct missing, malformed, or cross-boundary references before exchange.", "evaluator": "references"
+    },
+    {
+      "schemaVersion": "1.0.0", "id": "fhir.terminology.binding", "version": "1.0.0",
+      "title": "Terminology binding validity", "description": "Verifies coded synthetic values against the scenario's pinned terminology assertions.",
+      "category": "fhir", "severity": "high", "behavior": "passive", "deterministic": true,
+      "supportedFhirVersions": ["4.0.1"], "capabilities": ["fixtures"], "timeoutSeconds": 15,
+      "remediation": "Use codes from the required value set and pin the terminology package version.", "evaluator": "terminology"
+    },
+    {
+      "schemaVersion": "1.0.0", "id": "fhir.narrative.safety", "version": "1.0.0",
+      "title": "Narrative markup safety", "description": "Checks that generated synthetic narrative excludes unsafe active markup.",
+      "category": "fhir", "severity": "medium", "behavior": "passive", "deterministic": true,
+      "supportedFhirVersions": ["4.0.1"], "capabilities": ["fixtures"], "timeoutSeconds": 5,
+      "remediation": "Sanitize generated XHTML and reject scripts, event handlers, and unsafe URLs.", "evaluator": "narrative"
+    },
+    {
+      "schemaVersion": "1.0.0", "id": "fhir.extension.modifier", "version": "1.0.0",
+      "title": "Modifier extension handling", "description": "Verifies that representative modifier extensions are recognized or explicitly rejected rather than ignored.",
+      "category": "fhir", "severity": "high", "behavior": "passive", "deterministic": true,
+      "supportedFhirVersions": ["4.0.1"], "capabilities": ["fixtures"], "timeoutSeconds": 5,
+      "remediation": "Reject unsupported modifier extensions and implement the semantics of supported modifiers.", "evaluator": "modifier_extensions"
+    },
+    {
+      "schemaVersion": "1.0.0", "id": "fhir.extension.unknown", "version": "1.0.0",
+      "title": "Unknown extension preservation", "description": "Verifies that unknown non-modifier extensions survive a deterministic synthetic round trip.",
+      "category": "fhir", "severity": "medium", "behavior": "passive", "deterministic": true,
+      "supportedFhirVersions": ["4.0.1"], "capabilities": ["fixtures"], "timeoutSeconds": 5,
+      "remediation": "Preserve unknown non-modifier extensions when reading and re-serializing resources.", "evaluator": "unknown_extensions"
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+name: fhir-flightcheck
+
+services:
+  postgres:
+    image: postgres:18.6-alpine
+    environment:
+      POSTGRES_DB: flightcheck
+      POSTGRES_USER: flightcheck
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-flightcheck-only}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flightcheck -d flightcheck"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  nats:
+    image: nats:2.14.5-alpine
+    command: ["--jetstream", "--store_dir=/data", "--http_port=8222"]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8222/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - nats-data:/data
+
+  garage:
+    image: dxflrs/garage:v2.3.0
+    command: ["/garage", "server", "--single-node", "--default-bucket"]
+    environment:
+      GARAGE_DEFAULT_ACCESS_KEY: ${S3_ACCESS_KEY:-flightcheck-local}
+      GARAGE_DEFAULT_SECRET_KEY: ${S3_SECRET_KEY:-flightcheck-local-secret}
+      GARAGE_DEFAULT_BUCKET: evidence
+    ports:
+      - "127.0.0.1:3900:3900"
+    volumes:
+      - garage-meta:/var/lib/garage/meta
+      - garage-data:/var/lib/garage/data
+
+  fhir:
+    image: hapiproject/hapi:v8.10.0-3-tomcat
+    environment:
+      spring.datasource.url: jdbc:h2:mem:flightcheck
+      hapi.fhir.fhir_version: R4
+    ports:
+      - "127.0.0.1:8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/fhir/metadata"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 45s
+
+  control-plane:
+    build:
+      context: .
+      dockerfile: services/control-plane/Dockerfile
+    environment:
+      FLIGHTCHECK_LISTEN_ADDR: :8081
+      FLIGHTCHECK_DATABASE_URL: postgres://flightcheck:${POSTGRES_PASSWORD:-local-flightcheck-only}@postgres:5432/flightcheck?sslmode=disable
+      FLIGHTCHECK_NATS_URL: nats://nats:4222
+      FLIGHTCHECK_API_TOKEN: ${FLIGHTCHECK_API_TOKEN:?Set FLIGHTCHECK_API_TOKEN in .env}
+      FLIGHTCHECK_WORKER_TOKEN: ${FLIGHTCHECK_WORKER_TOKEN:?Set FLIGHTCHECK_WORKER_TOKEN in .env}
+      FLIGHTCHECK_SIGNING_KEY: ${FLIGHTCHECK_SIGNING_KEY:?Set FLIGHTCHECK_SIGNING_KEY in .env}
+      FLIGHTCHECK_S3_ENDPOINT: http://garage:3900
+      FLIGHTCHECK_S3_BUCKET: evidence
+      FLIGHTCHECK_S3_ACCESS_KEY: ${S3_ACCESS_KEY:-flightcheck-local}
+      FLIGHTCHECK_S3_SECRET_KEY: ${S3_SECRET_KEY:-flightcheck-local-secret}
+      FLIGHTCHECK_ALLOW_LOCAL_DEMO: "true"
+    ports:
+      - "127.0.0.1:8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+
+  evaluator:
+    build:
+      context: .
+      dockerfile: workers/evaluator/Dockerfile
+    environment:
+      FLIGHTCHECK_CONTROL_PLANE_URL: http://control-plane:8081
+      FLIGHTCHECK_WORKER_TOKEN: ${FLIGHTCHECK_WORKER_TOKEN:?Set FLIGHTCHECK_WORKER_TOKEN in .env}
+      NATS_URL: nats://nats:4222
+    depends_on:
+      control-plane:
+        condition: service_started
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    environment:
+      CONTROL_PLANE_URL: http://control-plane:8081
+      FLIGHTCHECK_API_TOKEN: ${FLIGHTCHECK_API_TOKEN:?Set FLIGHTCHECK_API_TOKEN in .env}
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      control-plane:
+        condition: service_started
+
+  cli:
+    profiles: ["tools"]
+    build:
+      context: .
+      dockerfile: cmd/flightcheck/Dockerfile
+    environment:
+      FLIGHTCHECK_API_TOKEN: ${FLIGHTCHECK_API_TOKEN:?Set FLIGHTCHECK_API_TOKEN in .env}
+    volumes:
+      - ./.flightcheck:/workspace/.flightcheck
+    depends_on:
+      control-plane:
+        condition: service_started
+
+volumes:
+  postgres-data:
+  nats-data:
+  garage-meta:
+  garage-data:

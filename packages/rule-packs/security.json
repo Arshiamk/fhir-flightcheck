@@ -1,0 +1,69 @@
+{
+  "name": "Security, privacy, and auditability",
+  "version": "1.0.0",
+  "rules": [
+    {
+      "schemaVersion": "1.0.0", "id": "security.smart.metadata", "version": "1.0.0",
+      "title": "SMART discovery metadata", "description": "Verifies required authorization, token, and capability discovery fields.",
+      "category": "security", "severity": "high", "behavior": "active-read", "deterministic": true,
+      "capabilities": ["network"], "timeoutSeconds": 10,
+      "remediation": "Publish complete SMART configuration from the well-known endpoint.", "evaluator": "smart_metadata"
+    },
+    {
+      "schemaVersion": "1.0.0", "id": "security.smart.scopes", "version": "1.0.0",
+      "title": "SMART scope minimization", "description": "Flags wildcard scopes advertised by the representative SMART configuration.",
+      "category": "security", "severity": "high", "behavior": "active-read", "deterministic": true,
+      "capabilities": ["network"], "timeoutSeconds": 10,
+      "remediation": "Advertise and request only resource-specific scopes needed by the workflow.", "evaluator": "smart_scopes"
+    },
+    {
+      "schemaVersion": "1.0.0", "id": "security.evidence.redaction", "version": "1.0.0",
+      "title": "Evidence redaction", "description": "Scans representative evidence for direct identifiers, tokens, and secrets.",
+      "category": "security", "severity": "critical", "behavior": "passive", "deterministic": true,
+      "capabilities": ["fixtures"], "timeoutSeconds": 5,
+      "remediation": "Redact direct identifiers and credentials before logs or evidence storage.", "evaluator": "redaction"
+    },
+    {
+      "schemaVersion": "1.0.0", "id": "security.http.headers", "version": "1.0.0",
+      "title": "HTTP security headers", "description": "Verifies the synthetic target's recorded transport security header assertion.",
+      "category": "security", "severity": "medium", "behavior": "passive", "deterministic": true,
+      "capabilities": ["fixtures"], "timeoutSeconds": 5,
+      "remediation": "Set strict transport and content security headers at the public edge.", "evaluator": "security_headers"
+    },
+    {
+      "schemaVersion": "1.0.0", "id": "security.token.claims", "version": "1.0.0",
+      "title": "Token claim constraints", "description": "Verifies issuer, audience, expiry, and context assertions from synthetic tokens.",
+      "category": "security", "severity": "critical", "behavior": "passive", "deterministic": true,
+      "capabilities": ["fixtures"], "timeoutSeconds": 5,
+      "remediation": "Validate issuer, audience, expiry, signature, and patient context on every token.", "evaluator": "token_claims"
+    },
+    {
+      "schemaVersion": "1.0.0", "id": "security.audit.correlation", "version": "1.0.0",
+      "title": "Audit correlation completeness", "description": "Checks that synthetic access evidence has actor, action, target, and correlation.",
+      "category": "security", "severity": "high", "behavior": "passive", "deterministic": true,
+      "capabilities": ["fixtures"], "timeoutSeconds": 5,
+      "remediation": "Record actor, action, target, outcome, timestamp, and trace correlation.", "evaluator": "audit"
+    },
+    {
+      "schemaVersion": "1.0.0", "id": "security.redirect.allowlist", "version": "1.0.0",
+      "title": "Redirect allowlist enforcement", "description": "Verifies that untrusted redirect destinations are rejected in the synthetic scenario.",
+      "category": "security", "severity": "high", "behavior": "passive", "deterministic": true,
+      "capabilities": ["fixtures"], "timeoutSeconds": 5,
+      "remediation": "Match exact pre-registered redirect URIs and reject private or untrusted destinations.", "evaluator": "redirects"
+    },
+    {
+      "schemaVersion": "1.0.0", "id": "security.patient.isolation", "version": "1.0.0",
+      "title": "Patient context isolation", "description": "Verifies that synthetic requests cannot retrieve resources outside the authorized patient context.",
+      "category": "security", "severity": "critical", "behavior": "passive", "deterministic": true,
+      "capabilities": ["fixtures"], "timeoutSeconds": 10,
+      "remediation": "Bind patient-scoped tokens to every query and enforce the context before resource access.", "evaluator": "patient_isolation"
+    },
+    {
+      "schemaVersion": "1.0.0", "id": "security.retention.export", "version": "1.0.0",
+      "title": "Retention and export declaration", "description": "Requires deterministic evidence declaring retention limits and supported data export behavior.",
+      "category": "security", "severity": "medium", "behavior": "passive", "deterministic": true,
+      "capabilities": ["fixtures"], "timeoutSeconds": 5,
+      "remediation": "Publish enforceable retention periods and a documented, auditable export process.", "evaluator": "retention_export"
+    }
+  ]
+}

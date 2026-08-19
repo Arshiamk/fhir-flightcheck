@@ -1,0 +1,65 @@
+name: Bug report
+description: Report a reproducible defect using synthetic or fully de-identified data
+title: "bug: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include protected health information (PHI), patient data, access tokens, credentials, private target URLs, or unredacted logs. Use the bundled synthetic fixtures and redact identifiers. Report security vulnerabilities privately through GitHub Security Advisories, not here.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Data-safety confirmation
+      options:
+        - label: I confirm this issue and every attachment contain no PHI, patient data, secrets, credentials, or sensitive target information.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the observed and expected behavior.
+      placeholder: A synthetic run produced...
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Synthetic reproduction
+      description: Provide minimal steps using bundled or newly created synthetic data.
+      placeholder: |
+        1. Start...
+        2. Run...
+        3. Observe...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Flightcheck version or commit
+      placeholder: v0.x.y or commit SHA
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - CLI
+        - Control plane
+        - Evaluator or rule pack
+        - Web console
+        - Evidence or report verification
+        - Deployment or CI
+        - Documentation
+        - Unsure
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Redacted diagnostics
+      description: Include only minimal redacted errors. Do not paste FHIR resources or environment dumps.
+      render: shell

@@ -1,0 +1,61 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "05:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "05:15"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    groups:
+      javascript:
+        patterns: ["*"]
+
+  - package-ecosystem: pip
+    directory: /workers/evaluator
+    schedule:
+      interval: weekly
+      day: monday
+      time: "05:30"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    groups:
+      python:
+        patterns: ["*"]
+
+  - package-ecosystem: gomod
+    directory: /cmd/flightcheck
+    schedule:
+      interval: weekly
+      day: monday
+      time: "05:45"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    groups:
+      go-cli:
+        patterns: ["*"]
+
+  - package-ecosystem: gomod
+    directory: /services/control-plane
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    groups:
+      go-control-plane:
+        patterns: ["*"]

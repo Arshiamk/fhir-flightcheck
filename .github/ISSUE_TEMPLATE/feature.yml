@@ -1,0 +1,54 @@
+name: Feature request
+description: Propose an improvement without sharing sensitive health or target data
+title: "feature: "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the general workflow, not a real patient or customer case. Do not include PHI, patient data, credentials, private target details, proprietary rules, or unredacted evidence.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Data-safety confirmation
+      options:
+        - label: I confirm this request and every attachment contain no PHI, patient data, secrets, credentials, or sensitive target information.
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Explain the engineering need using a synthetic example.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: What observable result should Flightcheck produce?
+    validations:
+      required: true
+  - type: dropdown
+    id: behavior
+    attributes:
+      label: Highest requested capability
+      options:
+        - Documentation only
+        - No target access
+        - Passive or active read
+        - Active write
+        - Model or tool invocation
+        - Unsure
+    validations:
+      required: true
+  - type: textarea
+    id: security
+    attributes:
+      label: Security and privacy considerations
+      description: Note tenant, credential, egress, retention, evidence, or human-review implications without including sensitive details.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

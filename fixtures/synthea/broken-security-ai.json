@@ -1,0 +1,43 @@
+{
+  "scenario": "overbroad-authorization-and-unsafe-ai-write",
+  "syntheticOnly": true,
+  "dates": ["2026-08-18T09:30:00Z"],
+  "reportedEvidence": {"authorization": "Bearer synthetic-secret-token-value-00001", "status": "unsafe"},
+  "fhir": {
+    "referencesValid": true, "terminologyValid": true, "narrativeSafe": true,
+    "modifierExtensionsHandled": true, "unknownExtensionsPreserved": true
+  },
+  "reliability": {
+    "retryIdempotent": true, "retryAfterHonored": true, "timeoutsBounded": true,
+    "paginationLoopDetected": true, "duplicatePagesDetected": true, "concurrencyBounded": true,
+    "versionConflictsHandled": true
+  },
+  "security": {
+    "headersPresent": false, "tokenClaimsValid": false, "auditComplete": false, "redirectsSafe": false,
+    "patientIsolationEnforced": false, "retentionExportDeclared": false
+  },
+  "aiSafety": {
+    "grounded": false, "provenancePresent": false, "promptInjectionResisted": false,
+    "unsafeWritesBlocked": false, "leastPrivilegeTools": false, "humanReviewRouted": false,
+    "modelTraceable": false, "citationsValid": false, "abstainsWhenUnsupported": false
+  },
+  "probes": {
+    "capabilityStatement": {
+      "statusCode": 200, "headers": {"content-type": "application/fhir+json"},
+      "body": {"resourceType": "CapabilityStatement", "fhirVersion": "4.0.1"}, "elapsedMs": 8
+    },
+    "smartConfiguration": {
+      "statusCode": 200, "headers": {"content-type": "application/json"},
+      "body": {
+        "authorization_endpoint": "https://synthetic.example/authorize",
+        "token_endpoint": "https://synthetic.example/token",
+        "capabilities": ["launch-ehr"], "scopes_supported": ["patient/*.*", "user/*.*"]
+      }, "elapsedMs": 5
+    },
+    "searchBundle": {
+      "statusCode": 200, "headers": {"content-type": "application/fhir+json"},
+      "body": {"resourceType": "Bundle", "total": 0, "entry": [], "link": [{"relation": "self", "url": "https://synthetic.example/Patient"}]},
+      "elapsedMs": 7
+    }
+  }
+}

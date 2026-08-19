@@ -1,0 +1,62 @@
+{
+  "name": "Reliability and recovery",
+  "version": "1.0.0",
+  "rules": [
+    {
+      "schemaVersion": "1.0.0", "id": "reliability.retry.idempotency", "version": "1.0.0",
+      "title": "Idempotent retry behavior", "description": "Uses synthetic fault evidence to verify that retrying does not duplicate effects.",
+      "category": "reliability", "severity": "high", "behavior": "passive", "deterministic": true,
+      "capabilities": ["fixtures"], "timeoutSeconds": 20,
+      "remediation": "Use stable idempotency keys and persist completion before acknowledging work.", "evaluator": "retry"
+    },
+    {
+      "schemaVersion": "1.0.0", "id": "reliability.throttle.retryafter", "version": "1.0.0",
+      "title": "Retry-After handling", "description": "Uses bounded synthetic fault evidence to verify Retry-After behavior.",
+      "category": "reliability", "severity": "medium", "behavior": "passive", "deterministic": true,
+      "capabilities": ["fixtures"], "timeoutSeconds": 20,
+      "remediation": "Honor delta-seconds and HTTP-date Retry-After values within a total deadline.", "evaluator": "retry_after"
+    },
+    {
+      "schemaVersion": "1.0.0", "id": "reliability.timeout.budget", "version": "1.0.0",
+      "title": "Bounded timeout budget", "description": "Verifies that connection and response waits remain inside the declared budget.",
+      "category": "reliability", "severity": "high", "behavior": "passive", "deterministic": true,
+      "capabilities": ["fixtures"], "timeoutSeconds": 20,
+      "remediation": "Apply connect, read, and total deadlines and classify exhausted waits as transient.", "evaluator": "timeouts"
+    },
+    {
+      "schemaVersion": "1.0.0", "id": "reliability.pagination.loop", "version": "1.0.0",
+      "title": "Pagination loop detection", "description": "Verifies detection of a repeated next-link in a synthetic page sequence.",
+      "category": "reliability", "severity": "high", "behavior": "passive", "deterministic": true,
+      "capabilities": ["fixtures"], "timeoutSeconds": 10,
+      "remediation": "Track normalized visited links and stop with explicit evidence on repetition.", "evaluator": "page_loops"
+    },
+    {
+      "schemaVersion": "1.0.0", "id": "reliability.pagination.duplicates", "version": "1.0.0",
+      "title": "Duplicate page detection", "description": "Verifies detection of duplicated resources or content-equivalent search pages.",
+      "category": "reliability", "severity": "medium", "behavior": "passive", "deterministic": true,
+      "capabilities": ["fixtures"], "timeoutSeconds": 10,
+      "remediation": "Hash normalized page identities and de-duplicate resources by type and logical id.", "evaluator": "duplicates"
+    },
+    {
+      "schemaVersion": "1.0.0", "id": "reliability.concurrency.bound", "version": "1.0.0",
+      "title": "Bounded probe concurrency", "description": "Verifies that the synthetic execution record stayed under its concurrency cap.",
+      "category": "reliability", "severity": "high", "behavior": "passive", "deterministic": true,
+      "capabilities": ["fixtures"], "timeoutSeconds": 10,
+      "remediation": "Use a fixed semaphore and bounded queue to apply backpressure.", "evaluator": "concurrency"
+    },
+    {
+      "schemaVersion": "1.0.0", "id": "reliability.recovery.evidence", "version": "1.0.0",
+      "title": "Non-destructive recovery evidence", "description": "Requires a bounded recovery assertion without issuing a clinical write.",
+      "category": "reliability", "severity": "medium", "behavior": "passive", "deterministic": true,
+      "capabilities": ["fixtures"], "timeoutSeconds": 10,
+      "remediation": "Capture synthetic recovery-point evidence through read-only probes.", "evaluator": "retry"
+    },
+    {
+      "schemaVersion": "1.0.0", "id": "reliability.version.conflict", "version": "1.0.0",
+      "title": "Optimistic concurrency conflict", "description": "Verifies that a synthetic stale version is rejected without overwriting newer state.",
+      "category": "reliability", "severity": "high", "behavior": "passive", "deterministic": true,
+      "capabilities": ["fixtures"], "timeoutSeconds": 10,
+      "remediation": "Use version-aware conditional updates and surface conflicts for deterministic reconciliation.", "evaluator": "version_conflicts"
+    }
+  ]
+}
